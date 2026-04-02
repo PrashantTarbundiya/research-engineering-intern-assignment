@@ -17,7 +17,7 @@ def build_embeddings(input_file, chroma_dir):
     # Recreate collection to avoid duplicates during dev
     try:
         client.delete_collection(name="reddit_posts")
-    except ValueError:
+    except Exception:
         pass # Collection doesn't exist
         
     collection = client.create_collection(
@@ -82,4 +82,7 @@ def build_embeddings(input_file, chroma_dir):
     print(f"Embedding and indexing complete in {time.time() - start_time:.2f} seconds.")
 
 if __name__ == "__main__":
-    build_embeddings("../data/cleaned_data.jsonl", "../data/chroma_db")
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_path = os.path.join(base_dir, "data", "cleaned_data.jsonl")
+    db_path = os.path.join(base_dir, "data", "chroma_db")
+    build_embeddings(input_path, db_path)
