@@ -48,6 +48,9 @@ def preprocess_dataset(input_file="data.jsonl", output_file="data/cleaned_data.j
                 record["text"] = full_text
                 
                 record["created_utc"] = d.get("created_utc", 0)
+                record["subreddit"] = d.get("subreddit", "unknown")
+                record["score"] = d.get("score", 0)
+                record["url"] = d.get("url", "")
                 
             elif "text" in item and "author" in item:
                 # Twitter Format
@@ -73,4 +76,7 @@ def preprocess_dataset(input_file="data.jsonl", output_file="data/cleaned_data.j
     print(f"Finished. Extracted {valid_records} clean text entries.")
 
 if __name__ == "__main__":
-    preprocess_dataset()
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_path = os.path.join(base_dir, "data.jsonl")
+    output_path = os.path.join(base_dir, "data", "cleaned_data.jsonl")
+    preprocess_dataset(input_file=input_path, output_file=output_path)
