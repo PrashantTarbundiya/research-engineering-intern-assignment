@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+chromadb
+sentence-transformers
+bertopic
+networkx
+google-generativeai
+langdetect
+pandas
