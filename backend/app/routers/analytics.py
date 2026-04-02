@@ -46,7 +46,7 @@ async def timeseries_analytics(req: AnalyticsQuery):
     if os.environ.get("GEMINI_API_KEY"):
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
+            model = genai.GenerativeModel("gemini-3-flash-preview")
             top_texts = texts[:10]  # Just give it a sample of 10 posts
             prompt = f"Given a user searched for '{req.query}' and these top posts: {json.dumps(top_texts)}, write a 1-sentence analytical summary explaining the narrative trend or key talking point."
             response = model.generate_content(prompt)

@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import search, analytics, network, chat
+from dotenv import load_dotenv
+import os
+
+# Load .env file from the root and override any shell-set variables
+load_dotenv(override=True)
 
 app = FastAPI(title="NarrativeScope API", description="Backend for tracking narratives")
 
