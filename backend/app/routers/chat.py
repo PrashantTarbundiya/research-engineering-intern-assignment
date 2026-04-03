@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from ..services.db import semantic_search
+from app.services.db import semantic_search
 import os
-import google.generativeai as genai
+from groq import Groq
 from fastapi.responses import JSONResponse
+import json
 
 router = APIRouter()
 
@@ -18,10 +19,10 @@ class ChatQuery(BaseModel):
 
 @router.post("/chat")
 def perform_chat(req: ChatQuery):
-    if not os.environ.get("GEMINI_API_KEY"):
-        return JSONResponse(status_code=500, content={"error": "GEMINI_API_KEY not set"})
+    if not os.environ.get("GROQ_API_KEY"):
+        return JSONResponse(status_code=500, content={"error": "GROQ_API_KEY not set"})
         
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     
     # 1. Retrieve Context from ChromaDB using the last message as semantic search
     results = semantic_search(req.message, n_results=10)
@@ -32,7 +33,7 @@ def perform_chat(req: ChatQuery):
         for i in range(len(results["ids"][0])):
             context_docs.append(results["documents"][0][i])
             doc_id = results["ids"][0][i]
-            author = results["metadatas"][0][i].get("author", "unknown")
+            author = results["metadatas"][0][i].get("author", "unknown_author")
             sub = results["metadatas"][0][i].get("subreddit", "unknown")
             sources.append({"id": doc_id, "author": author, "subreddit": sub})
             
@@ -43,38 +44,52 @@ def perform_chat(req: ChatQuery):
     
     context_text = "\n\n---\n\n".join(context_docs)
     
-    # 3. Build history for Gemini
-    gemini_history = []
+    # 3. Build history for Groq
+    groq_history = [{"role": "system", "content": system_prompt}]
     for msg in req.history:
-        # Convert user -> user, assistant -> model
-        gemini_history.append({
-            "role": "model" if msg.role in ["assistant", "system"] else "user",
-            "parts": [msg.content]
+        groq_history.append({
+            "role": "assistant" if msg.role in ["assistant", "model"] else "user",
+            "content": msg.content
         })
         
-    try:
-        model = genai.GenerativeModel("gemini-3-flash-preview", system_instruction=system_prompt)
-        chat = model.start_chat(history=gemini_history)
+    prompt_with_context = f"CONTEXT:\n{context_text}\n\nUSER QUESTION: {req.message}"
+    groq_history.append({"role": "user", "content": prompt_with_context})
         
-        prompt_with_context = f"CONTEXT:\n{context_text}\n\nUSER QUESTION: {req.message}"
-        response = chat.send_message(prompt_with_context)
+    try:
+        response = client.chat.completions.create(
+            messages=groq_history,
+            model="meta-llama/llama-4-scout-17b-16e-instruct"
+        )
+        
+        reply_text = response.choices[0].message.content
         
         # 4. Generate 3 suggested queries
-        # (For simplicity we just append them to the end, or we call the model a second time. Let's do a second quick call for structure)
         suggested_prompt = f"Based on the conversation and the context, generate exactly 3 short follow-up search queries as a JSON array of strings. Do not use Markdown formatting, just output the array."
-        sg_res = model.generate_content(suggested_prompt)
+        
+        sg_history = groq_history + [
+            {"role": "assistant", "content": reply_text},
+            {"role": "user", "content": suggested_prompt}
+        ]
+        
+        sg_res = client.chat.completions.create(
+            messages=sg_history,
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            response_format={"type": "json_object"} if False else None # Optional strict JSON if supported, falling back to manual
+        )
+        
         try:
-            import json
-            # try to parse the array
-            raw_sg = sg_res.text.replace('```json', '').replace('```', '').strip()
+            raw_sg = sg_res.choices[0].message.content.replace('```json', '').replace('```', '').strip()
             suggestions = json.loads(raw_sg)
+            if isinstance(suggestions, dict):
+                # Handle case where model returns {"queries": [...]}
+                suggestions = list(suggestions.values())[0]
         except:
             suggestions = ["What are other narratives?", "Who are the key actors?", "How has sentiment changed?"]
             
         return {
-            "reply": response.text,
+            "reply": reply_text,
             "sources": sources[:5], # Send top 5 sources back for UI citation
-            "suggested_queries": suggestions[:3]
+            "suggested_queries": suggestions[:3] if isinstance(suggestions, list) else []
         }
         
     except Exception as e:

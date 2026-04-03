@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
-from ..services.db import semantic_search
+from app.services.db import semantic_search
 import json
 import os
-import google.generativeai as genai
+from groq import Groq
 from collections import defaultdict
 from datetime import datetime
 
@@ -26,13 +26,21 @@ async def timeseries_analytics(req: AnalyticsQuery):
     metadatas = results["metadatas"][0]
     texts = results["documents"][0]
     
-    # Bucket by day or week
+    # Bucket by day
     daily_counts = defaultdict(int)
-    total_sentiment = 0 # Future expansion
     
     for m in metadatas:
         ts = m.get("created_utc", 0)
-        if ts:
+        # Handle string timestamps or varying scale (Twitter vs Reddit)
+        try:
+            ts = float(ts)
+            # If timestamp is in ms, convert to seconds
+            if ts > 3000000000:
+                ts = ts / 1000
+        except (ValueError, TypeError):
+            ts = 0
+
+        if ts > 0:
             dt = datetime.fromtimestamp(ts)
             date_str = dt.strftime("%Y-%m-%d")
             daily_counts[date_str] += 1
@@ -40,19 +48,21 @@ async def timeseries_analytics(req: AnalyticsQuery):
     # Sort
     sorted_data = [{"date": k, "count": v} for k, v in sorted(daily_counts.items())]
     
-    # Ask Gemini for a one-line summary
-    # Use API key from environment variable
+    # Ask Groq AI for a one-line summary
     summary = "Analysis unavailable."
-    if os.environ.get("GEMINI_API_KEY"):
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    if os.environ.get("GROQ_API_KEY"):
         try:
-            model = genai.GenerativeModel("gemini-3-flash-preview")
+            client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
             top_texts = texts[:10]  # Just give it a sample of 10 posts
             prompt = f"Given a user searched for '{req.query}' and these top posts: {json.dumps(top_texts)}, write a 1-sentence analytical summary explaining the narrative trend or key talking point."
-            response = model.generate_content(prompt)
-            summary = response.text
+            
+            response = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="meta-llama/llama-4-scout-17b-16e-instruct"
+            )
+            summary = response.choices[0].message.content
         except Exception as e:
-            print("Gemini API Error (Analytics):", e)
+            print("Groq API Error (Analytics):", e)
             
     return {"data": sorted_data, "summary": summary.strip()}
 
