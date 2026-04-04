@@ -21,11 +21,16 @@ class ChatQuery(BaseModel):
 def perform_chat(req: ChatQuery):
     if not os.environ.get("GROQ_API_KEY"):
         return JSONResponse(status_code=500, content={"error": "GROQ_API_KEY not set"})
-        
+
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    
-    # 1. Retrieve Context from ChromaDB using the last message as semantic search
-    results = semantic_search(req.message, n_results=10)
+
+    search_text = req.message
+    all_user_msgs = [m.content for m in req.history if m.role == "user"] + [req.message]
+    if len(req.message.strip().split()) <= 3 and len(all_user_msgs) > 1:
+        search_text = max(all_user_msgs[:-1], key=lambda m: len(m.split()))
+
+    # 2. Retrieve Context from ChromaDB using the best query text
+    results = semantic_search(search_text, n_results=10)
     context_docs = []
     sources = []
     
@@ -36,14 +41,19 @@ def perform_chat(req: ChatQuery):
             author = results["metadatas"][0][i].get("author", "unknown_author")
             sub = results["metadatas"][0][i].get("subreddit", "unknown")
             sources.append({"id": doc_id, "author": author, "subreddit": sub})
-            
-    # 2. Construct Prompt with context
-    system_prompt = """You are NarrativeScope, an investigative social media dashboard assistant. 
-    You are analyzing narratives. Use the provided context extracted from social media posts to answer the user's question. 
-    Be objective and cite your sources. If you don't know the answer based on the context, say you don't know and suggest what the user could search for instead."""
-    
-    context_text = "\n\n---\n\n".join(context_docs)
-    
+
+    system_prompt = f"""You are NarrativeScope, an investigative social media dashboard assistant.
+You analyze narratives from social media posts. Use the provided context to answer the user's question.
+Be objective, cite your sources, and reference actual post content.
+
+The user searched for: "{search_text}"
+Your latest message is: "{req.message}"
+
+If your latest message is a short follow-up (like "yes", "do it", "tell me more"), understand it in the context of our ongoing conversation. Answer based on the social media context, not generically.
+If you don't know the answer based on the context, say so and suggest what the user could search for instead."""
+
+    context_text = "\n\n---\n\n".join(context_docs) if context_docs else "No relevant posts found for this query."
+
     # 3. Build history for Groq
     groq_history = [{"role": "system", "content": system_prompt}]
     for msg in req.history:
@@ -51,8 +61,8 @@ def perform_chat(req: ChatQuery):
             "role": "assistant" if msg.role in ["assistant", "model"] else "user",
             "content": msg.content
         })
-        
-    prompt_with_context = f"CONTEXT:\n{context_text}\n\nUSER QUESTION: {req.message}"
+
+    prompt_with_context = f"CONTEXT (posts matching '{search_text}'):\n{context_text}\n\nUSER QUESTION: {req.message}"
     groq_history.append({"role": "user", "content": prompt_with_context})
         
     try:
