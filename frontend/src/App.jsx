@@ -10,6 +10,7 @@ import AnalyticsPage from './components/AnalyticsPage'
 const navItems = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'analytics', label: 'Analytics' },
+  { id: 'topics', label: 'Map Editor' },
 ]
 
 const defaultChartData = []
@@ -36,6 +37,8 @@ function Sidebar({ page, onNav, collapsed, onToggle }) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               {item.id === 'dashboard'
                 ? <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                : item.id === 'topics'
+                ? <><circle cx="12" cy="12" r="9" /><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" /></>
                 : <>
                     <path d="M3 3v18h18" />
                     <path d="M7 16l4-6 4 4 5-9" />
@@ -133,7 +136,7 @@ const suggestedQueries = [
 ]
 
 /* ─── Dashboard Page ─── */
-function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
+function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
   const [searchResults, setSearchResults] = useState([])
   const [tsData, setTsData] = useState(defaultChartData)
   const [summary, setSummary] = useState('')
@@ -141,6 +144,7 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
   const [topicData, setTopicData] = useState(defaultTopics)
   const [activeSearch, setActiveSearch] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
 
   useEffect(() => {
     getNetwork().then(setNetworkData).catch(() => {})
@@ -148,16 +152,31 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
   }, [])
 
   const doSearch = useCallback(async (q) => {
-    if (!q.trim()) return
+    const trimmed = q.trim()
+    if (!trimmed) {
+      setSearchQuery('')
+      return
+    }
+    
+    // Edge Case: Very short query
+    if (trimmed.length < 2) {
+      setSearchError('Query too short. Please enter at least 2 characters.')
+      return
+    }
+    
+    setSearchError('')
     setLoading(true)
     setActiveSearch(true)
+    
     try {
-      const [posts, ts] = await Promise.all([searchPosts(q, 50), getTimeseries(q)])
+      const [posts, ts] = await Promise.all([searchPosts(trimmed, 50), getTimeseries(trimmed)])
       setSearchResults(posts)
       setTsData(ts.data?.length ? ts.data : defaultChartData)
       setSummary(ts.summary || '')
-      setSearchQuery(q)
-    } catch {}
+      setSearchQuery(trimmed)
+    } catch (err) {
+      setSearchError('An error occurred while fetching insights. Please try again.')
+    }
     setLoading(false)
   }, [setSearchQuery])
 
@@ -201,6 +220,12 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
             <button onClick={clearSearch} className="text-xs bg-white/5 border border-white/10 px-3 py-2 rounded-lg hover:bg-white/10 text-zinc-300 whitespace-nowrap">Clear</button>
           )}
         </div>
+
+        {searchError && (
+          <div className="mt-2 text-xs text-red-400 font-medium px-1">
+            ⚠️ {searchError}
+          </div>
+        )}
 
         {/* suggestions when no active search */}
         {!activeSearch && (
@@ -246,7 +271,7 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
           <NetworkGraph data={networkData} height={activeSearch ? 300 : 400} />
         </div>
         <div className="glass-card p-4">
-          <TopicScatter data={topicData} height={activeSearch ? 300 : 400} />
+          <TopicScatter data={topicData} height={activeSearch ? 300 : 400} onFullscreenRequest={() => onNavigate('topics')} />
         </div>
       </div>
 
@@ -258,7 +283,14 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
             <span className="text-xs text-zinc-400">{searchResults.length} found for "{searchQuery}"</span>
           </div>
           {searchResults.length === 0 ? (
-            <p className="text-sm text-zinc-500">No results found</p>
+            <div className="flex flex-col items-center justify-center py-6 text-zinc-500 space-y-3">
+              <span className="text-lg">🔍</span>
+              <p className="text-sm">No results found for "{searchQuery}"</p>
+              <div className="flex gap-2">
+                <button onClick={() => doSearch('echo chambers')} className="text-xs bg-white/5 px-3 py-1.5 rounded-md hover:bg-white/10 transition text-zinc-300">Try "echo chambers"</button>
+                <button onClick={() => doSearch('misinformation')} className="text-xs bg-white/5 px-3 py-1.5 rounded-md hover:bg-white/10 transition text-zinc-300">Try "misinformation"</button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {searchResults.slice(0, 30).map((r, i) => (
@@ -279,9 +311,45 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch }) {
   )
 }
 
+/* ─── Topics Page ─── */
+function TopicsPage({ onNavigate }) {
+  const [topicData, setTopicData] = useState(defaultTopics)
+  
+  useEffect(() => {
+    getTopics().then(setTopicData).catch(() => {})
+  }, [])
+  
+  return (
+    <div className="animate-fade-in w-full h-[calc(100vh-2rem)]">
+      <TopicScatter data={topicData} height="100%" alwaysFullscreen={true} onClose={() => onNavigate('dashboard')} />
+    </div>
+  )
+}
+
+/* ─── Router Hook ─── */
+function useLocation() {
+  const [path, setPath] = useState(window.location.pathname)
+
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  const push = useCallback((newPath) => {
+    window.history.pushState({}, '', newPath)
+    setPath(newPath)
+  }, [])
+
+  return [path, push]
+}
+
 /* ─── App Root ─── */
 export default function App() {
-  const [page, setPage] = useState('landing')
+  const [path, navigate] = useLocation()
+  const page = (path === '/' || path === '/home' || !path) ? 'landing' : path.replace('/', '')
+  const setPage = (p) => navigate(p === 'landing' ? '/' : `/${p}`)
+
   const [collapsed, setCollapsed] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -332,10 +400,11 @@ export default function App() {
 
       {/* main */}
       <div className="flex-1 overflow-y-auto">
-        <div className={`mx-auto ${page === 'landing' ? '' : 'max-w-7xl p-4'}`}>
+        <div className={`mx-auto ${page === 'landing' ? '' : (page === 'topics' ? 'w-full h-full p-0' : 'max-w-7xl p-4')}`}>
           {page === 'landing' && <LandingPage onEnter={() => setPage('dashboard')} />}
-          {page === 'dashboard' && <DashboardPage searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearchRef} />}
+          {page === 'dashboard' && <DashboardPage searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearchRef} onNavigate={setPage} />}
           {page === 'analytics' && <AnalyticsPage />}
+          {page === 'topics' && <TopicsPage onNavigate={setPage} />}
         </div>
 
         {/* chat button */}
