@@ -12,7 +12,7 @@ export const isHealthy = () => _health
 
 export const searchPosts = async (query, limit = 50) => {
   const res = await api.post('/api/search', { query, limit })
-  return res.data.results || []
+  return { results: res.data.results || [], lang: res.data.detected_lang, lang_warning: res.data.lang_warning }
 }
 
 export const getTimeseries = async (query, limit = 500) => {

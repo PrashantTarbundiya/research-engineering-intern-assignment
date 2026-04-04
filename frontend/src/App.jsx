@@ -145,6 +145,7 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
   const [activeSearch, setActiveSearch] = useState(false)
   const [loading, setLoading] = useState(false)
   const [searchError, setSearchError] = useState('')
+  const [langWarning, setLangWarning] = useState('')
 
   useEffect(() => {
     getNetwork().then(setNetworkData).catch(() => {})
@@ -157,20 +158,22 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
       setSearchQuery('')
       return
     }
-    
+
     // Edge Case: Very short query
     if (trimmed.length < 2) {
       setSearchError('Query too short. Please enter at least 2 characters.')
       return
     }
-    
+
     setSearchError('')
+    setLangWarning('')
     setLoading(true)
     setActiveSearch(true)
-    
+
     try {
       const [posts, ts] = await Promise.all([searchPosts(trimmed, 50), getTimeseries(trimmed)])
-      setSearchResults(posts)
+      setSearchResults(posts.results || posts) // handle backward compat
+      if (posts.lang_warning) setLangWarning(posts.lang_warning)
       setTsData(ts.data?.length ? ts.data : defaultChartData)
       setSummary(ts.summary || '')
       setSearchQuery(trimmed)
@@ -224,6 +227,13 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
         {searchError && (
           <div className="mt-2 text-xs text-red-400 font-medium px-1">
             ⚠️ {searchError}
+          </div>
+        )}
+
+        {langWarning && (
+          <div className="mt-2 text-[11px] text-amber-300/80 font-medium px-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+            {langWarning}
           </div>
         )}
 
