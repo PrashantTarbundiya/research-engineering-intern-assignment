@@ -26,17 +26,45 @@ export default function NetworkGraph({ data, height = 400 }) {
 
   const handleReset = () => setRemovedNodes(new Set())
 
+  // Detect disconnected (zero-degree) nodes for stress test
+  const { isolatedCount, connectedNodeCount } = (() => {
+    const edgeNodeIds = new Set()
+    data?.edges?.forEach(e => {
+      const d = e.data || e
+      edgeNodeIds.add(String(d.source))
+      edgeNodeIds.add(String(d.target))
+    })
+    const visibleNodes = (data?.nodes || []).filter(n => !removedNodes.has(String((n.data || n).id)))
+    let iso = 0
+    let conn = 0
+    visibleNodes.forEach(n => {
+      if (edgeNodeIds.has(String((n.data || n).id))) conn++
+      else iso++
+    })
+    return { isolatedCount: iso, connectedNodeCount: conn }
+  })()
+
   const initGraph = useCallback(() => {
     if (!data?.nodes?.length || !containerRef.current) return
     if (initRef.current) return
     initRef.current = true
 
     const container = containerRef.current
+    const edgeNodeIds = new Set()
+    data?.edges?.forEach(e => {
+      const d = e.data || e
+      edgeNodeIds.add(String(d.source))
+      edgeNodeIds.add(String(d.target))
+    })
+
     const els = []
     data.nodes.forEach(n => {
       const d = n.data || n
       if (!removedNodes.has(String(d.id))) {
-        els.push({ data: { id: String(d.id), label: d.label || '', community: d.community ?? 0, pagerank: d.pagerank || 0, size: d.size || 0 } })
+        const hasEdge = edgeNodeIds.has(String(d.id))
+        if (hasEdge) {
+          els.push({ data: { id: String(d.id), label: d.label || '', community: d.community ?? 0, pagerank: d.pagerank || 0, size: d.size || 0 } })
+        }
       }
     })
     data.edges.forEach(e => {
@@ -125,9 +153,15 @@ export default function NetworkGraph({ data, height = 400 }) {
   return (
     <>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-zinc-300">Network — {data.nodes.length - removedNodes.size} nodes active</p>
+        <p className="text-xs font-medium text-zinc-300">Network — {connectedNodeCount} connected nodes{isolatedCount > 0 ? ` (${isolatedCount} isolated)` : ''}</p>
         <div className="flex gap-2">
           <button onClick={handleRemoveRoot} className="text-[10px] bg-red-500/20 text-red-500 px-2 py-1 rounded hover:bg-red-500/30">Remove Root Node</button>
+          {isolatedCount > 0 && (
+            <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              {isolatedCount} disconnected
+            </span>
+          )}
           {removedNodes.size > 0 && <button onClick={handleReset} className="text-[10px] bg-white/10 text-white px-2 py-1 rounded hover:bg-white/20">Reset</button>}
         </div>
       </div>

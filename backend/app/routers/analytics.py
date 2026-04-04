@@ -71,10 +71,41 @@ def get_topics(min_size: int = 15):
     # This reads the pre-computed BERTopic clustering JSON
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     topics_path = os.path.join(base_dir, "data", "topic_assignments.json")
-    
+
     try:
         with open(topics_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data
+
+        # Filter topics by minimum cluster size
+        all_topics = data.get("topics", {})
+        all_points = data.get("points", [])
+
+        # Count points per topic
+        topic_counts = defaultdict(int)
+        for point in all_points:
+            topic_id = str(point.get("topic", -1))
+            topic_counts[topic_id] += 1
+
+        # Keep only topics meeting min_size threshold
+        filtered_topic_ids = {
+            topic_id for topic_id, count in topic_counts.items()
+            if count >= min_size
+        }
+
+        # Filter topics dict and points
+        filtered_topics = {
+            topic_id: label for topic_id, label in all_topics.items()
+            if topic_id in filtered_topic_ids
+        }
+        filtered_points = [
+            point for point in all_points
+            if str(point.get("topic", -1)) in filtered_topic_ids
+        ]
+
+        return {
+            "topics": filtered_topics,
+            "points": filtered_points,
+            "cluster_sizes": {k: v for k, v in sorted(topic_counts.items(), key=lambda x: -x[1]) if k in filtered_topic_ids}
+        }
     except FileNotFoundError:
         return {"topics": {}, "points": []}

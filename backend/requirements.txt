@@ -4,6 +4,7 @@ chromadb
 sentence-transformers
 bertopic
 networkx
-google-generativeai
+groq
 langdetect
 pandas
+python-dotenv
