@@ -6,11 +6,13 @@ import NetworkGraph from './components/NetworkGraph'
 import TopicScatter from './components/TopicScatter'
 import ChatPanel from './components/ChatPanel'
 import AnalyticsPage from './components/AnalyticsPage'
+import DocumentationPage from './components/DocumentationPage'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'topics', label: 'Map Editor' },
+  { id: 'docs', label: 'Documentation' },
 ]
 
 const defaultChartData = []
@@ -39,6 +41,8 @@ function Sidebar({ page, onNav, collapsed, onToggle }) {
                 ? <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 : item.id === 'topics'
                 ? <><circle cx="12" cy="12" r="9" /><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" /></>
+                : item.id === 'docs'
+                ? <><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></>
                 : <>
                     <path d="M3 3v18h18" />
                     <path d="M7 16l4-6 4 4 5-9" />
@@ -113,6 +117,7 @@ function LandingPage({ onEnter, onSearchFocus }) {
             { title: 'Narrative AI', desc: 'RAG-powered chat assistant with source citations' },
             { title: 'Topic Clustering', desc: '123+ ML-discovered topic clusters from 8,667 posts' },
             { title: 'Multi-Platform', desc: 'Data from Reddit, Twitter/X, and more' },
+            { title: 'Documentation', desc: 'Complete technical reference and user guide' },
           ].map((f, i) => (
             <div key={i} className="glass-card p-4">
               <h3 className="text-zinc-200 font-medium text-sm mb-1">{f.title}</h3>
@@ -415,6 +420,7 @@ export default function App() {
           {page === 'dashboard' && <DashboardPage searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearchRef} onNavigate={setPage} />}
           {page === 'analytics' && <AnalyticsPage />}
           {page === 'topics' && <TopicsPage onNavigate={setPage} />}
+          {page === 'docs' && <DocumentationPage />}
         </div>
 
         {/* chat button */}
