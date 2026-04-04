@@ -67,8 +67,20 @@ async def timeseries_analytics(req: AnalyticsQuery):
     if os.environ.get("GROQ_API_KEY"):
         try:
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-            top_texts = texts[:10]  # Just give it a sample of 10 posts
-            prompt = f"Given a user searched for '{req.query}' and these top posts: {json.dumps(top_texts)}, write a 1-sentence analytical summary explaining the narrative trend or key talking point."
+            top_texts = texts[:20]
+            prompt = f"""You are an investigative analyst summarizing social media trends for a general audience.
+
+A user searched for: "{req.query}"
+You found {len(texts)} relevant posts. Here is a sample:
+
+{json.dumps(top_texts, ensure_ascii=False)}
+
+Write a concise summary in exactly 3-4 lines that:
+1. Explain what this topic is about and what people are saying.
+2. Highlight the main theme or shared concern visible in the posts.
+3. Note the overall tone or pattern.
+
+Keep it simple, jargon-free, and easy for anyone to understand."""
 
             response = client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
