@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip } from 'recharts'
 
 import { searchPosts, getTimeseries, getNetwork, getTopics, checkHealth, isHealthy } from './api'
-import NetworkGraph from './components/NetworkGraph'
-import TopicScatter from './components/TopicScatter'
-import ChatPanel from './components/ChatPanel'
-import { SummaryRenderer as SentenceRenderer } from './components/ChatPanel'
-import AnalyticsPage from './components/AnalyticsPage'
-import DocumentationPage from './components/DocumentationPage'
+import NetworkGraph from './components/NetworkGraph.jsx'
+import TopicScatter from './components/TopicScatter.jsx'
+import ChatPanel from './components/ChatPanel.jsx'
+import { SummaryRenderer as SentenceRenderer } from './components/ChatPanel.jsx'
+import AnalyticsPage from './components/AnalyticsPage.jsx'
+import DocumentationPage from './components/DocumentationPage.jsx'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard' },
