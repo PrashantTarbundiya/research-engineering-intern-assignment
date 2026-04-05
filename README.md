@@ -9,6 +9,13 @@ An investigative social media dashboard designed to trace digital narratives, cl
 
 > **Status:** Successfully implemented all P0 requirements (Semantic Search, Network Visualization, Time Series, Topic Clustering, and AI RAG Assistant).
 
+
+---
+
+## 🎥 Video Demo
+
+Watch the project in action: [**Video Demo (Google Drive)**](https://drive.google.com/file/d/1XZ8XJW-zuZ8oS6yPh1DPVJfFPS286knD/view?usp=sharing)
+
 ---
 
 ## 📸 Solution Gallery
