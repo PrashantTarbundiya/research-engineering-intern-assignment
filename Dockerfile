@@ -6,6 +6,11 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download the embedding model during build to save memory/time at runtime
+ENV HF_HOME=/app/hf_cache
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+
 # Copy the application code
 COPY backend/ .
 

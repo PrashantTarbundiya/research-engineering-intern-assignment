@@ -1,13 +1,9 @@
 import chromadb
 import chromadb.config
 import os
-from sentence_transformers import SentenceTransformer
 
 _client = None
 _collection = None
-
-# Pre-load embedding model at import time to avoid first-request timeout
-_embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
 
 def get_chroma_client():
@@ -43,7 +39,13 @@ def get_chroma_client():
 def semantic_search(query_text, n_results=50, where_filter=None):
     collection = get_chroma_client()
 
+    global _embedder
+    if '_embedder' not in globals():
+        from sentence_transformers import SentenceTransformer
+        _embedder = SentenceTransformer('all-MiniLM-L6-v2')
+
     query_emb = _embedder.encode([query_text]).tolist()
+
 
     results = collection.query(
         query_embeddings=query_emb,
