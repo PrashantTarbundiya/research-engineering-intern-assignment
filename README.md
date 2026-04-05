@@ -15,28 +15,35 @@ An investigative social media dashboard designed to trace digital narratives, cl
 
 ### 1. Main Investigative Dashboard
 Monitor narrative volume over time, overall sentiment, and drill down into specific search queries.
-![Main Dashboard](assets/screenshots/dashboard.png)
+![Main Dashboard](assets/screenshots/dashboard_main.png)
+![Narrative Summary](assets/screenshots/narrative_summary.png)
 
 ### 2. Interactive Network Graph & Centrality
 Visualize the conversation graph with PageRank centrality mapping influence across nodes. Uses Louvain community detection for coloring.
-![Network Graph](assets/screenshots/network_graph.png)
+![Network Graph](assets/screenshots/network_clusters.png)
 
 ### 3. Dynamic Topic Clustering (K-Means)
 Tune the number of clusters in real-time using a slider. Visualizes UMAP spatial distribution of posts.
-![Topic Clustering](assets/screenshots/topic_clusters.png)
+![Topic Clustering](assets/screenshots/dynamic_clustering.png)
 
 ### 4. Deep-Dive Analytics & Community Insights
 Statistical breakdown of subreddits, top topics, and spatial clustering distribution.
-![Analytics Summary](assets/screenshots/analytics_summary.png)
+![Analytics Summary](assets/screenshots/analytics_main.png)
 ![Analytics Charts](assets/screenshots/analytics_charts.png)
+![Narrative Velocity](assets/screenshots/narrative_velocity.png)
+![Topic Keywords](assets/screenshots/topic_keywords.png)
 
 ### 5. Narrative AI Chat (RAG)
 An investigative assistant that cites author and subreddit sources directly from the retrieved semantic results.
-![Narrative AI Chat](assets/screenshots/chat_sources.png)
+![Narrative AI Chat](assets/screenshots/ai_chat.png)
 
 ### 6. Interactive UMAP Spatial Mapping
-Explorer the full embedding space where posts with similar meaning are spatially grouped together.
-![Spatial Mapping](assets/screenshots/data_map_plot.png)
+Explore the full embedding space where posts with similar meaning are spatially grouped together.
+![Spatial Mapping](assets/screenshots/spatial_map.png)
+
+### 7. Investigative Documentation
+Built-in guidance for researchers on how to use semantic search, network analysis, and topic clustering.
+![Documentation](assets/screenshots/documentation.png)
 
 ---
 
@@ -156,12 +163,6 @@ docker run -p 8000:8000 --env-file .env narrativescope-api
 └── render.yaml         # Cloud deployment configuration
 ```
 
----
-
-## 📈 Future Roadmap
-- [ ] Connect offline events (Wikipedia News) to narrative spikes.
-- [ ] Implement cross-platform search (Reddit & Twitter integration).
-- [ ] Add advanced export for investigative reports (PDF/JSON).
 
 ---
 

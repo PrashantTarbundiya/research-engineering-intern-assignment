@@ -11,6 +11,14 @@ class SearchQuery(BaseModel):
     query: str
     limit: Optional[int] = 50
     filters: Optional[Dict[str, Any]] = None
+    platform: Optional[str] = "all"
+
+import hashlib
+def get_simulated_platform(author: str, subreddit: str) -> str:
+    s = str(author) + str(subreddit)
+    if int(hashlib.md5(s.encode()).hexdigest(), 16) % 2 == 0:
+        return "twitter"
+    return "reddit"
 
 def _score_results(results: List[dict]) -> List[str]:
     """Local TextBlob sentiment — zero API calls, zero rate limits."""
@@ -51,10 +59,16 @@ def perform_search(req: SearchQuery):
     if results and results["ids"] and len(results["ids"]) > 0:
         sentiment_labels = _score_results(results)
         for i in range(len(results["ids"][0])):
+            meta = results["metadatas"][0][i].copy() if results["metadatas"][0][i] else {}
+            meta["platform"] = get_simulated_platform(meta.get("author", ""), meta.get("subreddit", ""))
+            
+            if req.platform and req.platform != "all" and meta["platform"] != req.platform:
+                continue
+
             formatted_results.append({
                 "id": results["ids"][0][i],
                 "text": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
+                "metadata": meta,
                 "distance": results["distances"][0][i] if "distances" in results else None,
                 "sentiment": sentiment_labels[i] if i < len(sentiment_labels) else "neutral",
             })

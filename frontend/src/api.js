@@ -10,13 +10,13 @@ export const checkHealth = async () => {
 }
 export const isHealthy = () => _health
 
-export const searchPosts = async (query, limit = 50) => {
-  const res = await api.post('/api/search', { query, limit })
+export const searchPosts = async (query, limit = 50, platform = "all") => {
+  const res = await api.post('/api/search', { query, limit, platform })
   return { results: res.data.results || [], lang: res.data.detected_lang, lang_warning: res.data.lang_warning }
 }
 
-export const getTimeseries = async (query, limit = 500) => {
-  const res = await api.post('/api/timeseries', { query, limit })
+export const getTimeseries = async (query, limit = 500, platform = "all") => {
+  const res = await api.post('/api/timeseries', { query, limit, platform })
   return res.data
 }
 

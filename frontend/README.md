@@ -1,16 +1,46 @@
-# React + Vite
+# NarrativeScope Frontend 🎨
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the React/Vite/Tailwind-based dashboard for the NarrativeScope project. It provides researchers with interactive tools to explore social media narratives through semantic search, network analysis, and spatial clustering.
 
-Currently, two official plugins are available:
+## 🚀 Key Dashboard Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Investigative Search
+Semantic search that understands the intent behind your queries, powered by ChromaDB embeddings.
+![Main Dashboard](../assets/screenshots/dashboard_main.png)
 
-## React Compiler
+### Network Analysis
+Interactive visualization of conversation graphs using `cytoscape.js`.
+![Network Clusters](../assets/screenshots/network_clusters.png)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Spatial Topic Clustering
+Visualizing UMAP-reduced embeddings with real-time K-Means clustering.
+![Dynamic Clustering](../assets/screenshots/dynamic_clustering.png)
 
-## Expanding the ESLint configuration
+### RAG AI Assistant
+An AI chat assistant that uses search context to provide sourced answers.
+![AI Chat](../assets/screenshots/ai_chat.png)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🛠️ Tech Stack
+
+- **Framework**: React 18+ (Vite)
+- **Styling**: TailwindCSS
+- **Visualizations**: 
+  - `cytoscape.js` (Network Graphs)
+  - `recharts` (Analytics Charts)
+  - `UMAP` (Spatial Mapping)
+- **State Management**: React Hooks
+
+## 📦 Getting Started
+
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+
+2.  **Start Dev Server**:
+    ```bash
+    npm run dev
+    ```
+
+3.  **Environment Variables**:
+    Ensure the backend is running at `http://localhost:8000` or update the API endpoint in `.env`.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, BarChart, Bar, AreaChart, Area } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, BarChart, Bar, AreaChart, Area, ReferenceLine } from 'recharts'
 
 import { searchPosts, getTimeseries, getNetwork, getTopics, checkHealth, isHealthy } from './api'
 import NetworkGraph from './components/NetworkGraph.jsx'
@@ -154,6 +154,33 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
   const [loading, setLoading] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [langWarning, setLangWarning] = useState('')
+  const [platform, setPlatform] = useState('all')
+
+  const handleExportJSON = () => {
+    const reportData = {
+      query: searchQuery,
+      generatedAt: new Date().toISOString(),
+      sentimentOverview,
+      summary,
+      timeSeries: tsData,
+      posts: searchResults.map(p => ({
+        id: p.id,
+        text: p.text,
+        metadata: p.metadata,
+        distance: p.distance,
+        sentiment: p.sentiment
+      }))
+    }
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `narrative-report-${searchQuery.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'export'}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   useEffect(() => {
     getNetwork().then(setNetworkData).catch(() => {})
@@ -179,7 +206,7 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
     setActiveSearch(true)
 
     try {
-      const [posts, ts] = await Promise.all([searchPosts(trimmed, 50), getTimeseries(trimmed)])
+      const [posts, ts] = await Promise.all([searchPosts(trimmed, 50, platform), getTimeseries(trimmed, 500, platform)])
       setSearchResults(posts.results || posts) // handle backward compat
       if (posts.lang_warning) setLangWarning(posts.lang_warning)
       setTsData(ts.data?.length ? ts.data : defaultChartData)
@@ -207,10 +234,14 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
   }
 
   return (
-    <div className="animate-fade-in pb-10 space-y-4">
+    <div id="report-container" className="animate-fade-in pb-10 space-y-4">
       {/* search bar */}
       <div className={`glass-card p-3 transition-all duration-300 ${loading ? 'shadow-[0_0_20px_rgba(59,130,246,0.3)] border-blue-500/50' : ''}`}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+        
+        {/* Platform dropdown removed as requested */}
+
+        <div className="flex items-center gap-2 flex-1">
           <div className="flex-1 relative">
             <input
               value={searchQuery}
@@ -232,9 +263,16 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
             </button>
           </div>
           {activeSearch && (
-            <button onClick={clearSearch} className="text-xs bg-white/5 border border-white/10 px-3 py-2 rounded-lg hover:bg-white/10 text-zinc-300 whitespace-nowrap">Clear</button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={handleExportJSON} className="text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-lg hover:bg-emerald-600/30 whitespace-nowrap flex items-center gap-1.5 transition">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                JSON
+              </button>
+              <button onClick={clearSearch} className="text-xs bg-white/5 border border-white/10 px-3 py-2 rounded-lg hover:bg-white/10 text-zinc-300 whitespace-nowrap">Clear</button>
+            </div>
           )}
         </div>
+      </div>
 
         {searchError && (
           <div className="mt-2 text-xs text-red-400 font-medium px-1">
@@ -299,7 +337,7 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
                   if (!active || !payload?.length) return null
                   const s = payload[0]?.payload?.sentiment
                   return (
-                    <div className="bg-zinc-800 border border-white/15 px-3 py-1.5 text-xs text-zinc-200 rounded">
+                    <div className="bg-zinc-800 border border-white/15 px-3 py-1.5 text-xs text-zinc-200 rounded shadow-xl">
                       <div>{payload[0].value} posts on {payload[0].payload.date}</div>
                       {s && (
                         <div className="mt-1 flex gap-1.5">
@@ -311,6 +349,12 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
                     </div>
                   )
                 }} />
+                
+                {/* Connect offline Events to Spikes */}
+                {offlineEvents.filter(e => e.date).map((e, idx) => (
+                   <ReferenceLine key={idx} x={e.date} stroke="#f59e0b" strokeDasharray="3 3" label={{ position: 'top', value: e.type === 'spike' ? 'Spike' : 'Event', fill: '#fcd34d', fontSize: 10 }} />
+                ))}
+
                 <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -339,8 +383,8 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
           {offlineEvents.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {offlineEvents.map((evt, i) => (
-                <div key={i} className="text-[10px] border border-amber-500/30 text-amber-300 bg-amber-500/5 px-2 py-1 rounded-full max-w-[200px]">
-                  {evt.type === 'spike' ? 'Spike' : 'Event'}: {evt.title.length > 40 ? evt.title.slice(0, 40) + '...' : evt.title}
+                <div key={i} className="text-[10px] border border-amber-500/30 text-amber-300 bg-amber-500/5 px-2 py-1 rounded-full whitespace-nowrap">
+                  {evt.type === 'spike' ? 'Spike' : 'Event'}: {evt.title.length > 50 ? evt.title.slice(0, 50) + '...' : evt.title}
                 </div>
               ))}
             </div>
@@ -391,8 +435,22 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
                 <div key={i} className="border border-white/5 rounded-lg p-3 hover:bg-white/5 transition">
                   <p className="text-sm text-zinc-200 leading-relaxed">{r.text?.substring(0, 300)}{r.text?.length > 300 ? '…' : ''}</p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    {r.metadata?.author && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded">@{r.metadata.author}</span>}
-                    {r.metadata?.subreddit && <span className="text-[10px] bg-purple-500/15 text-purple-400 px-1.5 py-0.5 rounded">r/{r.metadata.subreddit}</span>}
+                    {r.metadata?.author && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded flex items-center">@{r.metadata.author}</span>}
+                    
+                    {r.metadata?.platform === 'twitter' ? (
+                      <span className="text-[10px] bg-sky-500/15 text-sky-400 px-1.5 py-0.5 rounded flex items-center">
+                        <svg className="w-2.5 h-2.5 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        X/Twitter
+                      </span>
+                    ) : (
+                      r.metadata?.subreddit && (
+                        <span className="text-[10px] bg-orange-500/15 text-orange-400 px-1.5 py-0.5 rounded flex items-center">
+                          <svg className="w-2.5 h-2.5 mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.562-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.561-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                          r/{r.metadata.subreddit}
+                        </span>
+                      )
+                    )}
+
                     {r.distance != null && <span className="text-[10px] text-zinc-500">similar: {(1 - r.distance).toFixed(2)}</span>}
                     {sentiment && <span className={`text-[10px] border px-1.5 py-0.5 rounded capitalize ${sentimentColor}`}>{sentiment}</span>}
                   </div>
