@@ -349,7 +349,7 @@ function TimeSeries() {
         </p>
         <p className="leading-relaxed">
           The <span className="text-zinc-200 font-medium">AI Summary</span> sends the top 20 posts to Groq / Llama 4
-          Scout, which generates a 3-4 line explanation in plain language — accessible to anyone, no data literacy required.
+          Scout, which generates a 2-3 sentence summary in plain language — specific about dates and numbers, no speculation beyond the data.
         </p>
       </div>
     </section>

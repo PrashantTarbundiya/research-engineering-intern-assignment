@@ -153,6 +153,9 @@ function renderInline(text) {
   })
 }
 
+const SummaryRenderer = MarkdownText
+export { SummaryRenderer }
+
 export default function ChatPanel({ open, onClose }) {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])

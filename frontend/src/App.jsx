@@ -5,6 +5,7 @@ import { searchPosts, getTimeseries, getNetwork, getTopics, checkHealth, isHealt
 import NetworkGraph from './components/NetworkGraph'
 import TopicScatter from './components/TopicScatter'
 import ChatPanel from './components/ChatPanel'
+import { SummaryRenderer as SentenceRenderer } from './components/ChatPanel'
 import AnalyticsPage from './components/AnalyticsPage'
 import DocumentationPage from './components/DocumentationPage'
 
@@ -275,7 +276,9 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
             </ResponsiveContainer>
           )}
           {summary && (
-            <div className="mt-2 text-xs text-zinc-200 border border-white/10 rounded-lg p-3 bg-white/5 leading-relaxed">{summary}</div>
+            <div className="mt-2 text-xs text-zinc-200 border border-white/10 rounded-lg p-3 bg-white/5 leading-relaxed">
+              <SentenceRenderer text={summary} />
+            </div>
           )}
         </div>
       )}
