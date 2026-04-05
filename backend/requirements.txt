@@ -8,3 +8,5 @@ groq
 langdetect
 pandas
 python-dotenv
+wikipedia
+textblob

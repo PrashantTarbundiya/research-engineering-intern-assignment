@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, BarChart, Bar, AreaChart, Area } from 'recharts'
 
 import { searchPosts, getTimeseries, getNetwork, getTopics, checkHealth, isHealthy } from './api'
 import NetworkGraph from './components/NetworkGraph.jsx'
@@ -146,6 +146,8 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
   const [searchResults, setSearchResults] = useState([])
   const [tsData, setTsData] = useState(defaultChartData)
   const [summary, setSummary] = useState('')
+  const [sentimentOverview, setSentimentOverview] = useState(null)
+  const [offlineEvents, setOfflineEvents] = useState([])
   const [networkData, setNetworkData] = useState({ nodes: [], edges: [] })
   const [topicData, setTopicData] = useState(defaultTopics)
   const [activeSearch, setActiveSearch] = useState(false)
@@ -182,6 +184,8 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
       if (posts.lang_warning) setLangWarning(posts.lang_warning)
       setTsData(ts.data?.length ? ts.data : defaultChartData)
       setSummary(ts.summary || '')
+      setSentimentOverview(ts.sentiment_overview || null)
+      setOfflineEvents(ts.offline_events || [])
       setSearchQuery(trimmed)
     } catch (err) {
       setSearchError('An error occurred while fetching insights. Please try again.')
@@ -197,6 +201,8 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
     setSearchResults([])
     setTsData(defaultChartData)
     setSummary('')
+    setSentimentOverview(null)
+    setOfflineEvents([])
     setActiveSearch(false)
   }
 
@@ -255,6 +261,27 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
         )}
       </div>
 
+      {/* Sentiment Overview */}
+      {sentimentOverview && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-zinc-300">Sentiment Overview</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            {[
+              { label: 'Positive', value: sentimentOverview.total_positive, color: 'text-emerald-400' },
+              { label: 'Neutral', value: sentimentOverview.total_neutral, color: 'text-zinc-300' },
+              { label: 'Negative', value: sentimentOverview.total_negative, color: 'text-red-400' },
+            ].map((s, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-[10px] text-zinc-500">{s.label}</div>
+              </div>
+            ))}
+          </div> 
+        </div>
+      )}
+
       {/* Posts Over Time — summary shown directly, not hidden in details */}
       {(tsData.length > 0 || summary) && (
         <div className="glass-card p-4">
@@ -263,17 +290,60 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
             <span className="text-xs text-zinc-400">{tsData.length} days of data</span>
           </div>
           {tsData.length > 0 && (
-            <ResponsiveContainer width="100%" height={100}>
+            <ResponsiveContainer width="100%" height={140}>
               <LineChart data={tsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} tickLine={false} />
                 <YAxis tick={{ fill: '#71717a', fontSize: 10 }} tickLine={false} />
-                <RTooltip content={({ active, payload }) => active && payload?.[0] ? (
-                  <div className="bg-zinc-800 border border-white/15 px-3 py-1 text-xs text-zinc-200">{payload[0].value} posts on {payload[0].payload.date}</div>
-                ) : null} />
+                <RTooltip content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const s = payload[0]?.payload?.sentiment
+                  return (
+                    <div className="bg-zinc-800 border border-white/15 px-3 py-1.5 text-xs text-zinc-200 rounded">
+                      <div>{payload[0].value} posts on {payload[0].payload.date}</div>
+                      {s && (
+                        <div className="mt-1 flex gap-1.5">
+                          <span className="text-emerald-400">+{s.positive}</span>
+                          <span className="text-zinc-400">={s.neutral}</span>
+                          <span className="text-red-400">-{s.negative}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                }} />
                 <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
+          )}
+          {/* Sentiment breakdown per day */}
+          {tsData.length > 0 && tsData.some(d => d.sentiment) && (
+            <ResponsiveContainer width="100%" height={80}>
+              <AreaChart data={tsData}>
+                <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 9 }} tickLine={false} />
+                <YAxis hide />
+                <RTooltip content={({ active, payload }) => {
+                  if (!active) return null
+                  return (
+                    <div className="bg-zinc-800 border border-white/15 px-3 py-1.5 text-xs text-zinc-200 rounded">
+                      Sentiment: <span className="text-emerald-400">{payload?.[0]?.value || 0}P</span> · <span className="text-zinc-400">{payload?.[1]?.value || 0}N</span> · <span className="text-red-400">{payload?.[2]?.value || 0}Neg</span>
+                    </div>
+                  )
+                }} />
+                <Area type="monotone" dataKey="sentiment.positive" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.4} name="Positive" />
+                <Area type="monotone" dataKey="sentiment.neutral" stackId="1" stroke="#71717a" fill="#71717a" fillOpacity={0.3} name="Neutral" />
+                <Area type="monotone" dataKey="sentiment.negative" stackId="1" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.4} name="Negative" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+          {/* Offline event markers */}
+          {offlineEvents.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {offlineEvents.map((evt, i) => (
+                <div key={i} className="text-[10px] border border-amber-500/30 text-amber-300 bg-amber-500/5 px-2 py-1 rounded-full max-w-[200px]">
+                  {evt.type === 'spike' ? 'Spike' : 'Event'}: {evt.title.length > 40 ? evt.title.slice(0, 40) + '...' : evt.title}
+                </div>
+              ))}
+            </div>
           )}
           {summary && (
             <div className="mt-2 text-xs text-zinc-200 border border-white/10 rounded-lg p-3 bg-white/5 leading-relaxed">
@@ -311,16 +381,24 @@ function DashboardPage({ searchQuery, setSearchQuery, onSearch, onNavigate }) {
             </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {searchResults.slice(0, 30).map((r, i) => (
+              {searchResults.slice(0, 30).map((r, i) => {
+                const sentiment = r.sentiment
+                const sentimentColor = sentiment === 'positive' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+                  : sentiment === 'negative' ? 'bg-red-500/15 text-red-400 border-red-500/20'
+                  : sentiment === 'toxic' ? 'bg-orange-500/15 text-orange-400 border-orange-500/20'
+                  : 'bg-zinc-500/15 text-zinc-400 border-zinc-500/20'
+                return (
                 <div key={i} className="border border-white/5 rounded-lg p-3 hover:bg-white/5 transition">
                   <p className="text-sm text-zinc-200 leading-relaxed">{r.text?.substring(0, 300)}{r.text?.length > 300 ? '…' : ''}</p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {r.metadata?.author && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded">@{r.metadata.author}</span>}
                     {r.metadata?.subreddit && <span className="text-[10px] bg-purple-500/15 text-purple-400 px-1.5 py-0.5 rounded">r/{r.metadata.subreddit}</span>}
                     {r.distance != null && <span className="text-[10px] text-zinc-500">similar: {(1 - r.distance).toFixed(2)}</span>}
+                    {sentiment && <span className={`text-[10px] border px-1.5 py-0.5 rounded capitalize ${sentimentColor}`}>{sentiment}</span>}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
