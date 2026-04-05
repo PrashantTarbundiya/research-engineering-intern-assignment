@@ -2,7 +2,7 @@ services:
   - type: web
     name: narrativescope-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
       - key: CHROMA_PERSIST_DIR
