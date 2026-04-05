@@ -31,8 +31,9 @@ def get_chroma_client():
         except ValueError:
             print("WARNING: 'reddit_posts' collection not found in ChromaDB! Run build_embeddings.py first.")
             _collection = _client.create_collection(name="reddit_posts")
-
-    return _collection
+        except Exception as e:
+            print(f"WARNING: Failed to open 'reddit_posts' collection: {e}")
+            _collection = _client.create_collection(name="reddit_posts")
 
 
 def semantic_search(query_text, n_results=50, where_filter=None):
