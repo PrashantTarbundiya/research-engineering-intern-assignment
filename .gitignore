@@ -4,5 +4,5 @@ __pycache__/
 *.pyc
 node_modules/
 data.jsonl
-data/
+backend/data/
 .planning/

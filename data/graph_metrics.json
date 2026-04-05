@@ -1,0 +1,141 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "Anarchism",
+        "label": "Anarchism",
+        "community": 0,
+        "pagerank": 0.10613388764156984,
+        "size": 530.6694382078492
+      }
+    },
+    {
+      "data": {
+        "id": "socialism",
+        "label": "socialism",
+        "community": 0,
+        "pagerank": 0.11748874522710778,
+        "size": 587.4437261355389
+      }
+    },
+    {
+      "data": {
+        "id": "Liberal",
+        "label": "Liberal",
+        "community": 2,
+        "pagerank": 0.11680422942884275,
+        "size": 584.0211471442137
+      }
+    },
+    {
+      "data": {
+        "id": "democrats",
+        "label": "democrats",
+        "community": 2,
+        "pagerank": 0.19056195235877393,
+        "size": 952.8097617938697
+      }
+    },
+    {
+      "data": {
+        "id": "politics",
+        "label": "politics",
+        "community": 2,
+        "pagerank": 0.17562282761219533,
+        "size": 878.1141380609766
+      }
+    },
+    {
+      "data": {
+        "id": "Republican",
+        "label": "Republican",
+        "community": 1,
+        "pagerank": 0.10143568514820255,
+        "size": 507.17842574101275
+      }
+    },
+    {
+      "data": {
+        "id": "Conservative",
+        "label": "Conservative",
+        "community": 1,
+        "pagerank": 0.14335458987700436,
+        "size": 716.7729493850218
+      }
+    },
+    {
+      "data": {
+        "id": "neoliberal",
+        "label": "neoliberal",
+        "community": 2,
+        "pagerank": 0.04859808270630313,
+        "size": 242.99041353151563
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "source": "Anarchism",
+        "target": "socialism",
+        "weight": 14
+      }
+    },
+    {
+      "data": {
+        "source": "socialism",
+        "target": "democrats",
+        "weight": 2
+      }
+    },
+    {
+      "data": {
+        "source": "Liberal",
+        "target": "democrats",
+        "weight": 17
+      }
+    },
+    {
+      "data": {
+        "source": "Liberal",
+        "target": "politics",
+        "weight": 6
+      }
+    },
+    {
+      "data": {
+        "source": "democrats",
+        "target": "politics",
+        "weight": 16
+      }
+    },
+    {
+      "data": {
+        "source": "democrats",
+        "target": "neoliberal",
+        "weight": 3
+      }
+    },
+    {
+      "data": {
+        "source": "politics",
+        "target": "Conservative",
+        "weight": 9
+      }
+    },
+    {
+      "data": {
+        "source": "politics",
+        "target": "neoliberal",
+        "weight": 4
+      }
+    },
+    {
+      "data": {
+        "source": "Republican",
+        "target": "Conservative",
+        "weight": 19
+      }
+    }
+  ]
+}

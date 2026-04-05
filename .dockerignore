@@ -1,0 +1,13 @@
+venv/
+node_modules/
+.git/
+.env
+__pycache__/
+*.pyc
+.planning/
+.claude/
+frontend/
+data.jsonl
+*.md
+backend/data/
+backend/__pycache__/
