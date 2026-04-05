@@ -62,6 +62,7 @@ export default function TopicScatter({ data, height = 400, alwaysFullscreen = fa
   const [hoveredText, setHoveredText] = useState(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [activeTopicId, setActiveTopicId] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Use tunable nClusters instead of minCount
   const [nClusters, setNClusters] = useState(20)
@@ -184,6 +185,20 @@ export default function TopicScatter({ data, height = 400, alwaysFullscreen = fa
               </div>
 
               <div className="flex items-center gap-3">
+                {/* ─── SEARCH INPUT ─── */}
+                <input
+                  type="text"
+                  placeholder="Search map..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    if (iframeRef.current?.contentWindow) {
+                      iframeRef.current.contentWindow.postMessage({ type: 'SEARCH', value: e.target.value }, '*')
+                    }
+                  }}
+                  className="bg-black/40 border border-white/10 rounded-md px-3 py-1 text-[11px] text-white focus:outline-none focus:border-blue-500/50 w-48 placeholder:text-zinc-600 shadow-inner"
+                />
+
                 {/* ─── ZOOM CONTROLS ─── */}
                 <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 mr-2">
                   <button 
@@ -248,6 +263,14 @@ export default function TopicScatter({ data, height = 400, alwaysFullscreen = fa
               </div>
               
               <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  placeholder="Search topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-black/40 border border-white/10 rounded-md px-3 py-1 text-[11px] text-white focus:outline-none focus:border-blue-500/50 w-48 placeholder:text-zinc-600 shadow-inner"
+                />
+
                 <button 
                   onClick={() => setViewMode('datamap')}
                   className="bg-blue-600/20 text-blue-400 border border-blue-500/20 px-3 py-1.5 text-xs rounded-md shadow hover:bg-blue-500/30 transition"
@@ -338,6 +361,8 @@ export default function TopicScatter({ data, height = 400, alwaysFullscreen = fa
               {/* Right Side Graph */}
               <div className="flex-1 relative h-full bg-[#0a0a0f] overflow-hidden cursor-crosshair">
                 {clusteredPoints.length > 0 && clusteredPoints.map((p, i) => {
+                  if (searchQuery && !p.text?.toLowerCase().includes(searchQuery.toLowerCase()) && !p.subreddit?.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+                  
                   const count = topicCounts[p.dynamic_topic] || 1
                   const dotSize = Math.max(3, Math.min(count / maxTopicCount * 12, 12))
                   const isActive = activeTopicId === null || activeTopicId === p.dynamic_topic
@@ -393,6 +418,8 @@ export default function TopicScatter({ data, height = 400, alwaysFullscreen = fa
 
       <div className="flex-1 relative w-full h-full cursor-crosshair">
         {clusteredPoints.length > 0 && clusteredPoints.map((p, i) => {
+          if (searchQuery && !p.text?.toLowerCase().includes(searchQuery.toLowerCase()) && !p.subreddit?.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+
           const count = topicCounts[p.dynamic_topic] || 1
           const dotSize = Math.max(2, Math.min(count / maxTopicCount * 8, 8))
           const isActive = activeTopicId === null || activeTopicId === p.dynamic_topic

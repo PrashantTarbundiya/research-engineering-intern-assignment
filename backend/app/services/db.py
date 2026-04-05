@@ -35,22 +35,28 @@ def get_chroma_client():
             print(f"WARNING: Failed to open 'reddit_posts' collection: {e}")
             _collection = _client.create_collection(name="reddit_posts")
 
+    return _collection
+
+
+import threading
+_query_lock = threading.Lock()
 
 def semantic_search(query_text, n_results=50, where_filter=None):
-    collection = get_chroma_client()
+    with _query_lock:
+        collection = get_chroma_client()
 
-    global _embedder
-    if '_embedder' not in globals():
-        from sentence_transformers import SentenceTransformer
-        _embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        global _embedder
+        if '_embedder' not in globals():
+            from sentence_transformers import SentenceTransformer
+            _embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
-    query_emb = _embedder.encode([query_text]).tolist()
+        query_emb = _embedder.encode([query_text]).tolist()
 
 
-    results = collection.query(
-        query_embeddings=query_emb,
-        n_results=n_results,
-        where=where_filter
-    )
+        results = collection.query(
+            query_embeddings=query_emb,
+            n_results=n_results,
+            where=where_filter
+        )
 
-    return results
+        return results

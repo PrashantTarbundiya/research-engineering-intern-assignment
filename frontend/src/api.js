@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const api = axios.create({ baseURL: BASE, timeout: 15000 })
+const api = axios.create({ baseURL: BASE, timeout: 35000 })
 
 let _health = false
 export const checkHealth = async () => {

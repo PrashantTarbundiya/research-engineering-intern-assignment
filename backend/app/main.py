@@ -20,6 +20,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from collections import defaultdict
+import time
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+# Store request timestamps per IP: { "ip_address": [timestamp1, timestamp2, ...] }
+request_counts = defaultdict(list)
+RATE_LIMIT_SECONDS = 60
+MAX_REQUESTS = 30  # Max requests per minute
+
+@app.middleware("http")
+async def rate_limiting_middleware(request: Request, call_next):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    
+    # Filter out timestamps older than the rate limit window
+    request_counts[client_ip] = [t for t in request_counts[client_ip] if now - t < RATE_LIMIT_SECONDS]
+    
+    if len(request_counts[client_ip]) >= MAX_REQUESTS:
+        return JSONResponse(
+            status_code=429, 
+            content={"error": "Rate limit exceeded. Please try again later."}
+        )
+    
+    request_counts[client_ip].append(now)
+    response = await call_next(request)
+    return response
+
 #routers
 app.include_router(search.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
